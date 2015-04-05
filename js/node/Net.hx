@@ -1,18 +1,58 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 import js.node.net.Socket;
 import js.node.net.Server;
 
-typedef SocketOptions = {
+private typedef CommonOptions = {
 	/**
-		if true, the socket won't automatically send a FIN packet when the other end of the socket sends a FIN packet.
-		Defaults to false. See 'end' event for more information.
+		If true, then the socket won't automatically send a FIN packet
+		when the other end of the socket sends a FIN packet.
+
+		The socket becomes non-readable, but still writable. You should call the `end` method explicitly.
+		See `end` event for more information.
+
+		Default: false
 	**/
 	@:optional var allowHalfOpen:Bool;
 }
 
+typedef SocketOptions = {
+	>CommonOptions,
+	/**
+		If true, then the socket associated with each incoming connection will be paused,
+		and no data will be read from its handle.
+
+		This allows connections to be passed between processes without any data being read by the original process.
+		To begin reading data from a paused socket, call `resume`.
+
+		Default: false
+	**/
+	@:optional var pauseOnConnect:Bool;
+}
+
 typedef TCPConnectOptions = {
-	>SocketOptions,
+	>CommonOptions,
 
 	/**
 		Port the client should connect to
@@ -29,10 +69,22 @@ typedef TCPConnectOptions = {
 		Local interface to bind to for network connections.
 	**/
 	@:optional var localAddress:String;
+
+	/**
+		Local port to bind to for network connections.
+	**/
+	@:optional var localPort:Int;
+
+	/**
+		Version of IP stack. Defaults to 4.
+
+		TODO: enum this?
+	**/
+	@:optional var family:Int;
 }
 
 typedef UnixConnectOptions = {
-	>SocketOptions,
+	>CommonOptions,
 
 	/**
 		Path the client should connect to
@@ -76,18 +128,18 @@ extern class Net {
 
 		Otherwise `options` argument should be provided.
 	**/
-	@:overload(function(path:String, ?connectListener :Void->Void):Socket {})
+	@:overload(function(path:String, ?connectListener:Void->Void):Socket {})
 	@:overload(function(port:Int, ?connectListener :Void->Void):Socket {})
-	@:overload(function(port:Int, host:String, ?connectListener :Void->Void):Socket {})
-	static function connect(options:haxe.EitherType<TCPConnectOptions,UnixConnectOptions>, ?connectListener :Void->Void):Socket;
+	@:overload(function(port:Int, host:String, ?connectListener:Void->Void):Socket {})
+	static function connect(options:haxe.extern.EitherType<TCPConnectOptions,UnixConnectOptions>, ?connectListener:Void->Void):Socket;
 
 	/**
 		Same as `connect`.
 	**/
-	@:overload(function(path:String, ?connectListener :Void->Void):Socket {})
-	@:overload(function(port:Int, ?connectListener :Void->Void):Socket {})
-	@:overload(function(port:Int, host:String, ?connectListener :Void->Void):Socket {})
-	static function createConnection(options:haxe.EitherType<TCPConnectOptions,UnixConnectOptions>, ?connectListener :Void->Void):Socket;
+	@:overload(function(path:String, ?connectListener:Void->Void):Socket {})
+	@:overload(function(port:Int, ?connectListener:Void->Void):Socket {})
+	@:overload(function(port:Int, host:String, ?connectListener:Void->Void):Socket {})
+	static function createConnection(options:haxe.extern.EitherType<TCPConnectOptions,UnixConnectOptions>, ?connectListener:Void->Void):Socket;
 
 	/**
 		Tests if input is an IP address.

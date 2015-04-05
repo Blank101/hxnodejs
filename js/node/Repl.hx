@@ -1,20 +1,29 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
-import js.node.events.EventEmitter;
-import js.node.stream.Readable;
-import js.node.stream.Writable;
-
-/**
-	Enumeration for REPL event strings.
-**/
-@:enum abstract ReplEvent(String) to String {
-	/**
-		Emitted when the user exits the REPL in any of the defined ways.
-		Namely, typing .exit at the repl, pressing Ctrl+C twice to signal SIGINT,
-		or pressing Ctrl+D to signal "end" on the input stream.
-	**/
-	var Exit = "exit";
-}
+import js.node.stream.Readable.IReadable;
+import js.node.stream.Writable.IWritable;
+import js.node.repl.REPLServer;
 
 /**
 	A Read-Eval-Print-Loop (REPL) is available both as a standalone program and easily includable in other programs.
@@ -29,9 +38,12 @@ extern class Repl {
 	/**
 		Returns and starts a REPLServer instance.
 	**/
-	static function start(options:ReplOptions):EventEmitter; // TODO: REPLServer extern?
+	static function start(options:ReplOptions):REPLServer;
 }
 
+/**
+	Options for `Repl.start` method.
+**/
 typedef ReplOptions = {
 	/**
 		The prompt and stream for all I/O.
@@ -43,13 +55,13 @@ typedef ReplOptions = {
 		the readable stream to listen to.
 		Defaults to `Process.stdin`.
 	**/
-	@:optional var input:Readable;
+	@:optional var input:IReadable;
 
 	/**
 		the writable stream to write readline data to.
 		Defaults to `Process.stdout`.
 	**/
-	@:optional var output:Writable;
+	@:optional var output:IWritable;
 
 	/**
 		pass `true` if the stream should be treated like a TTY, and have ANSI/VT100 escape codes written to it.
@@ -81,8 +93,10 @@ typedef ReplOptions = {
 	/**
 		if set to `true`, then the repl will not output the return value of command if it's `undefined`.
 		Defaults to `false`.
+
+		JavaScript `undefined` value is available in Haxe using `js.Lib.undefined`.
 	**/
-	@:optional var ignoreUndefined:Bool; // TODO: provide access to JS undefined via something like (untyped __js__("undefined"));
+	@:optional var ignoreUndefined:Bool;
 
 	/**
 		the function to invoke for each command that gets evaluated which returns the formatting (including coloring) to display.

@@ -1,3 +1,24 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 import haxe.DynamicAccess;
@@ -82,7 +103,7 @@ typedef ListeningEventAddress = {
 	var addressType:ListeningEventAddressType;
 }
 
-@:enum abstract ListeningEventAddressType(haxe.EitherType<Int,String>) to haxe.EitherType<Int,String> {
+@:enum abstract ListeningEventAddressType(haxe.extern.EitherType<Int,String>) to haxe.extern.EitherType<Int,String> {
 	var TCPv4 = 4;
 	var TCPv6 = 6;
 	var Unix = -1;
@@ -101,7 +122,7 @@ typedef ListeningEventAddress = {
 	Also note that, on Windows, it is not yet possible to set up a named pipe server in a worker.
 **/
 @:jsRequire("cluster")
-extern class Cluster extends EventEmitter
+extern class Cluster extends EventEmitter<Cluster>
 {
 	/**
 		A reference to the `Cluster` object returned by node.js module.

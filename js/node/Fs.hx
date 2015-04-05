@@ -1,6 +1,28 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 import haxe.DynamicAccess;
+import haxe.extern.EitherType;
 import js.Error;
 import js.node.Buffer;
 import js.node.fs.Stats;
@@ -8,15 +30,48 @@ import js.node.fs.FSWatcher;
 import js.node.fs.ReadStream;
 import js.node.fs.WriteStream;
 
-typedef WatchFileOptions = {
-	persistent:Bool,
-	interval:Int,
+/**
+	Possible options for `Fs.watchFile`.
+**/
+typedef FsWatchFileOptions = {
+	/**
+		indicates whether the process should continue to run as long as files are being watched
+		default: true
+	**/
+	@:optional var persistent:Bool;
+	/**
+		indicates how often the target should be polled, in milliseconds
+		default: 5007
+	**/
+	@:optional var interval:Int;
 }
 
-typedef WriteFileOptions = {
-	?encoding:String,
-	?mode:Int,
-	?flag:FileOpenFlag
+/**
+	The `mode` argument used by `Fs.open` and related functions
+	can be either an integer or a string with octal number.
+**/
+typedef FsMode = EitherType<Int,String>;
+
+/**
+	Possible options for `Fs.writeFile` and `Fs.appendFile`.
+**/
+typedef FsWriteFileOptions = {
+	/**
+		Encoding for writing strings.
+		Defaults to 'utf8'.
+		Ignored if data is a buffer
+	**/
+	@:optional var encoding:String;
+
+	/**
+		default = 438 (aka 0666 in Octal)
+	**/
+	@:optional var mode:FsMode;
+
+	/**
+		default: 'w' for `Fs.writeFile`, 'a' for `Fs.appendFile`
+	**/
+	@:optional var flag:FsOpenFlag;
 }
 
 /**
@@ -28,41 +83,105 @@ typedef WriteFileOptions = {
 	  autoClose: true
 	}
 **/
-typedef CreateReadStreamOptions = {
-	?flags:FileOpenFlag,
-	?encoding:String,
-	?fd:Int,
-	?mode:Int,
-	?autoClose:Bool,
-	?start:Int,
-	?end:Int
+/**
+	Options for `Fs.createReadStream`.
+**/
+typedef FsCreateReadStreamOptions = {
+	/**
+		default: 'r'
+	**/
+	@:optional var flags:FsOpenFlag;
+
+	/**
+		can be 'utf8', 'ascii', or 'base64'.
+		default: null
+	**/
+	@:optional var encoding:String;
+
+	/**
+		default: null
+	**/
+	@:optional var fd:Int;
+
+	/**
+		default: 0666
+	**/
+	@:optional var mode:FsMode;
+
+	/**
+		If autoClose is false, then the file descriptor won't be closed, even if there's an error.
+		It is your responsiblity to close it and make sure there's no file descriptor leak.
+
+		If autoClose is set to true (default behavior), on error or end the file
+		descriptor will be closed automatically.
+	**/
+	@:optional var autoClose:Bool;
+
+	/**
+		Start of the range of bytes to read
+	**/
+	@:optional var start:Int;
+
+	/**
+		End of the range of bytes to read
+	**/
+	@:optional var end:Int;
 }
 
 /**
-	Defaults:
-	{ flags: 'w',
-	  encoding: null,
-	  mode: 0666 }
+	Options for `Fs.createWriteStream`.
 **/
-typedef CreateWriteStreamOptions = {
-	>WriteFileOptions,
-	?start:Int
+typedef FsCreateWriteStreamOptions = {
+	/**
+		default: 'w'
+	**/
+	@:optional var flags:FsOpenFlag;
+
+	/**
+		default: null
+	**/
+	@:optional var encoding:String;
+
+	/**
+		default: 0666
+	**/
+	@:optional var mode:FsMode;
+
+	/**
+		position to write data the beginning of the file.
+	**/
+	@:optional var start:Int;
 }
 
+/**
+	Enumeration of possible symlink types
+**/
 @:enum abstract SymlinkType(String) from String to String {
 	var Dir = "dir";
 	var File = "file";
 	var Junction = "junction";
 }
 
-@:enum abstract FileOpenFlag(String) from String to String {
+/**
+	Enumeration of possible flags for opening file.
+
+	The exclusive flag 'x' (O_EXCL flag in open(2)) ensures that path is newly created.
+	On POSIX systems, path is considered to exist even if it is a symlink to a non-existent file.
+	The exclusive flag may or may not work with network file systems.
+
+	On Linux, positional writes don't work when the file is opened in append mode.
+	The kernel ignores the position argument and always appends the data to the end of the file.
+**/
+@:enum abstract FsOpenFlag(String) from String to String {
 	/**
-		Open file for reading. An exception occurs if the file does not exist.
+		Open file for reading.
+		An exception occurs if the file does not exist.
 	**/
 	var Read = "r";
 
 	/**
-		Open file for reading and writing. An exception occurs if the file does not exist.
+		Open file for reading and writing.
+		An exception occurs if the file does not exist.
 	**/
 	var ReadWrite = "r+";
 
@@ -129,21 +248,24 @@ typedef CreateWriteStreamOptions = {
 }
 
 /**
- * File I/O is provided by simple wrappers around standard POSIX functions. To use this module do require('fs'). All the methods have asynchronous and synchronous forms.
- * The asynchronous form always take a completion callback as its last argument.
- * The arguments passed to the completion callback depend on the method, but the first argument is always reserved for an exception.
- * If the operation was completed successfully, then the first argument will be null or undefined.
- * When using the synchronous form any exceptions are immediately thrown. You can use try/catch to handle exceptions or allow them to bubble up.
- * @author Eduardo Pons - eduardo@thelaborat.org
- */
+	File I/O is provided by simple wrappers around standard POSIX functions.
+	All the methods have asynchronous and synchronous forms.
+
+	The asynchronous form always take a completion callback as its last argument.
+	The arguments passed to the completion callback depend on the method,
+	but the first argument is always reserved for an exception.
+
+	If the operation was completed successfully, then the first argument will be null.
+
+	When using the synchronous form any exceptions are immediately thrown.
+	You can use try/catch to handle exceptions or allow them to bubble up.
+**/
 @:jsRequire("fs")
-extern class Fs
-{
+extern class Fs {
 	/**
 		Asynchronous rename(2).
 	**/
 	static function rename(oldPath:String, newPath:String, callback:Error->Void):Void;
-
 
 	/**
 		Synchronous rename(2).
@@ -203,33 +325,33 @@ extern class Fs
 	/**
 		Asynchronous chmod(2).
 	**/
-	static function chmod(path:String, mode:String, callback:Error->Void):Void;
+	static function chmod(path:String, mode:FsMode, callback:Error->Void):Void;
 
 	/**
 		Synchronous chmod(2).
 	**/
-	static function chmodSync(path:String, mode:String):Void;
+	static function chmodSync(path:String, mode:FsMode):Void;
 
 	/**
 		Asynchronous fchmod(2).
 	**/
-	static function fchmod(fd:Int, mode : String, callback:Error->Void):Void;
+	static function fchmod(fd:Int, mode:FsMode, callback:Error->Void):Void;
 
 	/**
 		Synchronous fchmod(2).
 	**/
-	static function fchmodSync(fd:Int, mode:String):Void;
+	static function fchmodSync(fd:Int, mode:FsMode):Void;
 
 	/**
 		Asynchronous lchmod(2).
 		Only available on Mac OS X.
 	**/
-	static function lchmod(path:String, mode:String, callback:Error->Void):Void;
+	static function lchmod(path:String, mode:FsMode, callback:Error->Void):Void;
 
 	/**
 		Synchronous lchmod(2).
 	**/
-	static function lchmodSync(path:String, mode:String):Void;
+	static function lchmodSync(path:String, mode:FsMode):Void;
 
 	/**
 		Asynchronous stat(2).
@@ -307,10 +429,13 @@ extern class Fs
 
 	/**
 		Asynchronous realpath(2).
+
 		The callback gets two arguments (err, resolvedPath).
+
 		May use process.cwd to resolve relative paths.
-		`cache` is an object literal of mapped paths that can be used to force
-		a specific path resolution or avoid additional `stat` calls for known real paths.
+
+		`cache` is an object literal of mapped paths that can be used to force a specific path resolution
+		or avoid additional `stat` calls for known real paths.
 	**/
 	@:overload(function(path:String, callback:Error->String->Void):Void {})
 	static function realpath(path:String, cache:DynamicAccess<String>, callback:Error->String->Void):Void;
@@ -335,7 +460,7 @@ extern class Fs
 	/**
 		Asynchronous rmdir(2).
 	**/
-	static function rmdir(path : String, callback : Error -> Void):Void;
+	static function rmdir(path:String, callback:Error->Void):Void;
 
 	/**
 		Synchronous rmdir(2).
@@ -346,17 +471,18 @@ extern class Fs
 		Asynchronous mkdir(2).
 		`mode` defaults to 0777.
 	**/
-	@:overload(function(path:String, callback: Error->Void):Void {})
-	static function mkdir(path : String, mode:String, callback : Error->Void):Void;
+	@:overload(function(path:String, callback:Error->Void):Void {})
+	static function mkdir(path:String, mode:FsMode, callback:Error->Void):Void;
 
 	/**
 		Synchronous mkdir(2).
 	**/
-	static function mkdirSync(path:String, ?mode:String):Void;
+	static function mkdirSync(path:String, ?mode:FsMode):Void;
 
 	/**
 		Asynchronous readdir(3).
 		Reads the contents of a directory.
+
 		The callback gets two arguments (err, files) where files is an array of the
 		names of the files in the directory excluding '.' and '..'.
 	**/
@@ -381,26 +507,21 @@ extern class Fs
 	/**
 		Asynchronous file open. See open(2).
 
+		See `FsOpenFlag` for description of possible `flags`.
+
 		`mode` sets the file mode (permission and sticky bits), but only if the file was created.
 		It defaults to 0666, readable and writeable.
 
 		The `callback` gets two arguments (err, fd).
-
-		The exclusive flag `x` (O_EXCL flag in open(2)) ensures that path is newly created.
-		On POSIX systems, path is considered to exist even if it is a symlink to a non-existent file.
-		The exclusive flag may or may not work with network file systems.
-
-		On Linux, positional writes don't work when the file is opened in append mode.
-		The kernel ignores the position argument and always appends the data to the end of the file.
 	**/
-	@:overload(function(path:String, flags:FileOpenFlag, callback:Error->Int->Void):Void {})
-	static function open(path:String, flags:FileOpenFlag, mode:String, callback:Error->Int->Void):Void;
+	@:overload(function(path:String, flags:FsOpenFlag, callback:Error->Int->Void):Void {})
+	static function open(path:String, flags:FsOpenFlag, mode:FsMode, callback:Error->Int->Void):Void;
 
 	/**
 		Synchronous version of open().
 	**/
-	@:overload(function(path:String, flags:FileOpenFlag):Void {})
-	static function openSync(path:String, flags:FileOpenFlag, mode:String):Void;
+	@:overload(function(path:String, flags:FsOpenFlag):Void {})
+	static function openSync(path:String, flags:FsOpenFlag, mode:FsMode):Void;
 
 	/**
 		Change file timestamps of the file referenced by the supplied path.
@@ -440,7 +561,8 @@ extern class Fs
 		`position` refers to the offset from the beginning of the file where this data should be written.
 		If position is null, the data will be written at the current position. See pwrite(2).
 
-		The `callback` will be given three arguments (err, written, buffer) where `written` specifies how many bytes were written from `buffer`.
+		The `callback` will be given three arguments (err, written, buffer)
+		where `written` specifies how many bytes were written from `buffer`.
 
 		Note that it is unsafe to use `write` multiple times on the same file without waiting for the callback.
 		For this scenario, `createWriteStream` is strongly recommended.
@@ -483,16 +605,16 @@ extern class Fs
 		If no `encoding` is specified, then the raw buffer is returned.
 	**/
 	@:overload(function(filename:String, callback:Error->Buffer->Void):Void {})
-	@:overload(function(filename:String, options:{flag:FileOpenFlag}, callback:Error->Buffer->Void):Void {})
-	static function readFile(filename:String, options:{encoding:String, ?flag:FileOpenFlag}, callback:Error->String->Void):Void;
+	@:overload(function(filename:String, options:{flag:FsOpenFlag}, callback:Error->Buffer->Void):Void {})
+	static function readFile(filename:String, options:{encoding:String, ?flag:FsOpenFlag}, callback:Error->String->Void):Void;
 
 	/**
 		Synchronous version of `readFile`. Returns the contents of the filename.
 		If the `encoding` option is specified then this function returns a string. Otherwise it returns a buffer.
 	**/
 	@:overload(function(filename:String):Buffer {})
-	@:overload(function(filename:String, options:{flag:FileOpenFlag}):Buffer {})
-	static function readFileSync(filename:String, options:{encoding:String, ?flag:FileOpenFlag}):String;
+	@:overload(function(filename:String, options:{flag:FsOpenFlag}):Buffer {})
+	static function readFileSync(filename:String, options:{encoding:String, ?flag:FsOpenFlag}):String;
 
 	/**
 		Asynchronously writes data to a file, replacing the file if it already exists.
@@ -503,16 +625,16 @@ extern class Fs
 	**/
 	@:overload(function(filename:String, data:Buffer, callback:Error->Void):Void {})
 	@:overload(function(filename:String, data:String, callback:Error->Void):Void {})
-	@:overload(function(filename:String, data:Buffer, options:WriteFileOptions, callback:Error->Void):Void {})
-	static function writeFile(filename:String, data:String, options:WriteFileOptions, callback:Error->Void):Void;
+	@:overload(function(filename:String, data:Buffer, options:FsWriteFileOptions, callback:Error->Void):Void {})
+	static function writeFile(filename:String, data:String, options:FsWriteFileOptions, callback:Error->Void):Void;
 
 	/**
 		The synchronous version of `writeFile`.
 	**/
 	@:overload(function(filename:String, data:Buffer):Void {})
 	@:overload(function(filename:String, data:String):Void {})
-	@:overload(function(filename:String, data:Buffer, options:WriteFileOptions):Void {})
-	static function writeFileSync(filename:String, data:String, options:WriteFileOptions):Void;
+	@:overload(function(filename:String, data:Buffer, options:FsWriteFileOptions):Void {})
+	static function writeFileSync(filename:String, data:String, options:FsWriteFileOptions):Void;
 
 	/**
 		Asynchronously append data to a file, creating the file if it not yet exists.
@@ -520,16 +642,16 @@ extern class Fs
 	**/
 	@:overload(function(filename:String, data:Buffer, callback:Error->Void):Void {})
 	@:overload(function(filename:String, data:String, callback:Error->Void):Void {})
-	@:overload(function(filename:String, data:Buffer, options:WriteFileOptions, callback:Error->Void):Void {})
-	static function appendFile(filename:String, data:String, options:WriteFileOptions, callback:Error->Void):Void;
+	@:overload(function(filename:String, data:Buffer, options:FsWriteFileOptions, callback:Error->Void):Void {})
+	static function appendFile(filename:String, data:String, options:FsWriteFileOptions, callback:Error->Void):Void;
 
 	/**
 		The synchronous version of `appendFile`.
 	**/
 	@:overload(function(filename:String, data:Buffer):Void {})
 	@:overload(function(filename:String, data:String):Void {})
-	@:overload(function(filename:String, data:Buffer, options:WriteFileOptions):Void {})
-	static function appendFileSync(filename:String, data:String, options:WriteFileOptions):Void;
+	@:overload(function(filename:String, data:Buffer, options:FsWriteFileOptions):Void {})
+	static function appendFileSync(filename:String, data:String, options:FsWriteFileOptions):Void;
 
 	/**
 		Unstable. Use `watch` instead, if possible.
@@ -545,7 +667,7 @@ extern class Fs
 		The `listener` gets two arguments: the current stat object and the previous stat object.
 	**/
 	@:overload(function(filename:String, listener:Stats->Stats->Void):Void {})
-	static function watchFile(filename:String, options:WatchFileOptions, listener:Stats->Stats->Void):Void;
+	static function watchFile(filename:String, options:FsWatchFileOptions, listener:Stats->Stats->Void):Void;
 
 	/**
 		Unstable. Use `watch` instead, if possible.
@@ -555,8 +677,7 @@ extern class Fs
 		Otherwise, all listeners are removed and you have effectively stopped watching filename.
 		Calling `unwatchFile` with a `filename` that is not being watched is a no-op, not an error.
 	**/
-	@:overload(function(filename:String):Void {})
-	static function unwatchFile(filename:String, listener:Stats->Stats->Void):Void;
+	static function unwatchFile(filename:String, ?listener:Stats->Stats->Void):Void;
 
 	/**
 		Watch for changes on `filename`, where filename is either a file or a directory.
@@ -567,8 +688,8 @@ extern class Fs
 		is the name of the file which triggered the event.
 	**/
 	@:overload(function(filename:String):FSWatcher {})
-	@:overload(function(filename:String, listener:FSWatcherEvent->String->Void):FSWatcher {})
-	static function watch(filename:String, options:{persistent:Bool}, listener:FSWatcherEvent->String->Void):FSWatcher;
+	@:overload(function(filename:String, options:{persistent:Bool}, listener:FSWatcherChangeType->String->Void):FSWatcher {})
+	static function watch(filename:String, listener:FSWatcherChangeType->String->Void):FSWatcher;
 
 	/**
 		Test whether or not the given `path` exists by checking with the file system.
@@ -602,7 +723,7 @@ extern class Fs
 		It is your responsiblity to close it and make sure there's no file descriptor leak.
 		If `autoClose` is set to true (default behavior), on error or end the file descriptor will be closed automatically.
 	**/
-	static function createReadStream(path:String, ?options:WriteFileOptions):ReadStream;
+	static function createReadStream(path:String, ?options:FsCreateReadStreamOptions):ReadStream;
 
 	/**
 		Returns a new WriteStream object (See Writable Stream).
@@ -611,5 +732,5 @@ extern class Fs
 
 		Modifying a file rather than replacing it may require a flags mode of r+ rather than the default mode w.
 	**/
-	static function createWriteStream(path:String, ?options:WriteFileOptions):WriteStream;
+	static function createWriteStream(path:String, ?options:FsCreateWriteStreamOptions):WriteStream;
 }

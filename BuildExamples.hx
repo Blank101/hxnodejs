@@ -12,7 +12,8 @@ class BuildExamples {
                     "-cp", "..",
                     "-js", '$main.js',
                     "-D", "js-es5",
-                    "-D", "js-flatten",
+                    "-D", "analyzer",
+                    "-dce", "full",
                 ]);
             }
         }

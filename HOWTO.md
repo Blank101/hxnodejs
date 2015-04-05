@@ -55,28 +55,38 @@ It makes sense to use e.g. `import fs.*` in the `Fs.hx` so that all relevant cla
 
 All modules, classes, fields and functions arguments should be named after the official API documentation of the native module. Static classes representing node modules are capitalized as they are Haxe types and must follow haxe type naming requirements. Acronyms are NOT uppercased (i.e. `Json`, not `JSON`).
 
+In case Haxe name for a node.js module matches the name of its inner class, that class is imported into module using `import as`, adding `Object` as a postfix. For example:
+
+```haxe
+import js.node.child_process.ChildProcess as ChildProcessObject; // class representing node.js inner class
+
+@:jsRequire("child_process") // class representing node.js module
+extern class ChildProcess {
+    static function spawn(/*...*/):ChildProcessObject;
+}
+```
+
 ## Events
 
-node.js event emitters takes strings as event names and we have no way to properly map a callback type to its event name
-at compile-time. However we do provide [@:enum abstract types](http://haxe.org/manual/types-abstract-enum.html) that enumerate possible event names for a given event emitter.
-They are purely advisory, but they are good for both documentation and holding constant event names.
+Node.js event emitters take strings as event names and don't check listener signatures in any way. The hxnodejs extern for `EventEmitter` supports that behaviour for convenience of copy-pasting JavaScript code. However it also provides a way to type-check event listeners.
 
-For each `EventEmitter` subclass, an `@:enum abstract` type must be created with a `Event` postfix in its name. For example,
-if we have a `Process` class which is an `EventEmitter`, it should have a pairing `ProcessEvent` type in its module, i.e.:
+If you provide an instance of `Event<T>` abstract string type where an event name is expected in any `EventEmitter` method, then the listener type will be unified with `T` and thus provide type checking and inference for the listener function.
+
+We provide [@:enum abstract types](http://haxe.org/manual/types-abstract-enum.html) that enumerate possible event names for a given event emitter. They are implicitly castable to `Event<T>` and can be used for type-checking listener functions as described above. For each `EventEmitter` subclass, an `@:enum abstract` type must be created with a `Event` postfix in its name. For example, if we have a `Process` class which is an `EventEmitter`, it should have a pairing `ProcessEvent` type in its module, i.e.:
 
 ```haxe
 extern class Process extends EventEmitter {
     // ...
 }
 
-@:enum abstract ProcessEvent(String) to String {
-    var Exit = "exit";
+@:enum abstract ProcessEvent<T:haxe.Constraints.Function>(Event<T>) to Event<T> {
+    var Exit : ProcessEvent<Int->Void> = "exit";
 }
 ```
 
-Note that the abstract type must have a `to String` cast so it can be used where a string is expected (because event names are strings). Event constant names are `UpperCamelCase` and their values are actual event names.
+In the example above, the listener type for the 'exit' event is `Int->Void` which means it takes `Int` as its first argument and returns nothing.
 
-**TODO: decide on event inheritance https://github.com/HaxeFoundation/hxnodejs/issues/21**
+Event constant names are `UpperCamelCase` and their values are actual event names.
 
 ## Method overloading and optional arguments
 
@@ -84,11 +94,17 @@ TODO (describe the difference of overloading/optional argument concepts and advi
 
 ## Typing
 
-TODO (describe the idea of maximum typing while keeping sanity)
+The whole idea of haxe externs is provide a fully type-checked access to external API. Considering that, we must avoid the need for use `Dynamic` type or `cast` and think of a way to properly express type restrictions.
+
+On the other hand, we want developers to be able to copy-paste node.js code into haxe with minimal modification and have it compiling. For that reason we have to weaken some typing restrictions, for example adding implicit cast `from String` for our `@:enum abstract` types.
 
 ### Multiple inheritance
 
 TODO (describe how to deal with multiple inheritance using interfaces, as we do with IReadable/IWritable streams, mention `@:remove` metadata for interfaces).
+
+### Chaining methods
+
+TODO (describe how to use type parameters + interface to properly type chaining methods)
 
 ### Object structures
 
@@ -162,14 +178,14 @@ Note that combined with `haxe.EitherType` (described above), `@:enum abstract`s 
 
 ## API Documenting
 
-We use API documentation style found in Haxe standard library and copy upstream API documentation text to externs (applying some minor editing/reformatting to it). 
+We use API documentation style found in Haxe standard library and copy upstream API documentation text to externs (applying some minor editing/reformatting to it).
 
 Example of Haxe standard library style:
 
 ```haxe
 /**
 	Does that and returns this.
-	
+
 	Some more info about using argument `a` and `b`.
 **/
 static function doStuff(a:Int, b:String):Void;
@@ -190,7 +206,7 @@ extern class DeprecatedClass {
 extern class NotSoDeprecated {
 	@:deprecated("use otherMethod instead") // custom warning message
 	function deprecatedMethod():Void;
-	
+
 	function otherMethod():Void;
 }
 ```

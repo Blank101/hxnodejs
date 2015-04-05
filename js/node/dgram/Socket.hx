@@ -1,3 +1,24 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node.dgram;
 
 import js.node.events.EventEmitter;
@@ -5,34 +26,34 @@ import js.node.events.EventEmitter;
 /**
 	Enumeration of events for the `Socket` object.
 **/
-@:enum abstract SocketEvent(String) to String {
+@:enum abstract SocketEvent<T:haxe.Constraints.Function>(Event<T>) to Event<T> {
 	/**
 		Emitted when a new datagram is available on a socket.
 		Listener arguments:
-			* msg:Buffer - received data
-			* rinfo:RemoteInfo - sender's address information and the number of bytes in the datagram
+			msg - received data
+			rinfo - sender's address information and the number of bytes in the datagram
 	**/
-	var Message = "message";
+	var Message : SocketEvent<MessageListener> = "message";
 
 	/**
 		Emitted when a socket starts listening for datagrams.
 		This happens as soon as UDP sockets are created.
 	**/
-	var Listening = "listening";
+	var Listening : SocketEvent<Void->Void> = "listening";
 
 	/**
 		Emitted when a socket is closed with `close`.
 		No new message events will be emitted on this socket.
 	**/
-	var Close = "close";
+	var Close : SocketEvent<Void->Void> = "close";
 
 	/**
 		Emitted when an error occurs.
-		Listener arguments:
-			* exception - error object
 	**/
-	var Error = "error";
+	var Error : SocketEvent<js.Error->Void>= "error";
 }
+
+typedef MessageListener = Buffer->MessageInfo->Void;
 
 /**
 	Information about socket address.
@@ -46,7 +67,7 @@ typedef AddressInfo = {
 /**
     A structure passed to the callback of the 'message' event.
 **/
-typedef RemoteInfo = {
+typedef MessageInfo = {
 	>AddressInfo,
     var size:Int;
 }
@@ -55,14 +76,15 @@ typedef RemoteInfo = {
     Enumeration of possible datagram socket types
 **/
 @:enum abstract SocketType(String) from String to String {
-    var UDPv4 = "udp4";
-    var UDPv6 = "udp6";
+    var Udp4 = "udp4";
+    var Udp6 = "udp6";
 }
 
 /**
 	Encapsulates the datagram functionality. It should be created via `Dgram.createSocket`.
 **/
-extern class Socket extends EventEmitter {
+@:jsRequire("dgram", "Socket")
+extern class Socket extends EventEmitter<Socket> {
 	/**
 		The destination `port` and `address` must be specified.
 		A string may be supplied for the `address` parameter, and it will be resolved with DNS.
@@ -78,7 +100,6 @@ extern class Socket extends EventEmitter {
 		to reuse the buf object. Note that DNS lookups delay the time to send for at least one tick.
 		The only way to know for sure that the datagram has been sent is by using a `callback`.
 	**/
-	@:overload(function(buf:Buffer, offset:Int, length:Int, port:Int, ?callback:Error->Int->Void):Void {})
 	function send(buf:Buffer, offset:Int, length:Int, port:Int, address:String, ?callback:Error->Int->Void):Void;
 
 	/**

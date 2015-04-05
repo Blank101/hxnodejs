@@ -1,35 +1,59 @@
-package js.node;
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
+package js;
 
 import haxe.Constraints.Function;
 import haxe.DynamicAccess;
 
+import js.node.*;
+
 /**
- * Wrapper for the global context of js.node.
- * @author Eduardo Pons - eduardo@thelaborat.org
- */
+	Node.js globals
+**/
 @:native("global")
-extern class NodeJS {
+extern class Node {
 	/**
 		The global namespace object.
 	**/
-	static inline var global:Dynamic<Dynamic> = cast NodeJS;
+	static inline var global:Dynamic<Dynamic> = cast Node;
 
 	/**
 		The process object.
 	 */
-	static var process(default,null):Process; // TODO: avoid global.process lookup?
+	static var process(get,never):Process;
+	private static inline function get_process():Process return untyped __js__("process");
 
 	/**
 		Used to print to stdout and stderr.
 	**/
-	static var console(default,null):Console; // TODO: avoid global.console lookup?
+	static var console(get,never):Console;
+	private static inline function get_console():Console return untyped __js__("console");
 
 
 	// TODO: handle this better way
 	/**
 		Fetches a library and returns the reference to it.
 	**/
-	public static inline function require(module:String):Dynamic return js.Lib.require(module);
+	static inline function require(module:String):Dynamic return js.Lib.require(module);
 
 	/**
 		Use the internal `require` machinery to look up the location of a module,
@@ -56,6 +80,13 @@ extern class NodeJS {
 	**/
 	static var require_extensions(get,never):DynamicAccess<Dynamic>;
 	private static inline function get_require_extensions():DynamicAccess<Dynamic> return untyped __js__("require.extensions");
+
+	/**
+		When a file is run directly from Node, `require_main` is set to its module.
+		That means that you can determine whether a file has been run directly by testing `require_main == module`.
+	**/
+	static var require_main(get,never):Module;
+	private static inline function get_require_main():Module return untyped __js__("require.main");
 
 
 	/**
@@ -94,7 +125,7 @@ extern class NodeJS {
 		Returns a `TimeoutObject` for possible use with `clearTimeout`.
 		Optionally you can also pass arguments to the `callback`.
 	**/
-	static function setTimeout(callback:Function, delay:Int, args:haxe.Rest<Dynamic>):TimeoutObject;
+	static function setTimeout(callback:Function, delay:Int, args:haxe.extern.Rest<Dynamic>):TimeoutObject;
 
 	/**
 		Prevents a timeout from triggering.
@@ -106,7 +137,7 @@ extern class NodeJS {
 		Returns a `IntervalObject` for possible use with `clearInterval`.
 		Optionally you can also pass arguments to the `callback`.
 	**/
-	static function setInterval(callback:Function, delay:Int, args:haxe.Rest<Dynamic>):IntervalObject;
+	static function setInterval(callback:Function, delay:Int, args:haxe.extern.Rest<Dynamic>):IntervalObject;
 
 	/**
 		Stops a interval from triggering.
@@ -123,7 +154,7 @@ extern class NodeJS {
 		`setImmediate` will yield to the event loop after firing a queued callback to make sure I/O is not being starved.
 		While order is preserved for execution, other I/O events may fire between any two scheduled immediate callbacks.
 	**/
-	static function setImmediate(callback:Function, args:haxe.Rest<Dynamic>):ImmediateObject;
+	static function setImmediate(callback:Function, args:haxe.extern.Rest<Dynamic>):ImmediateObject;
 
 	/**
 		Stops an immediate from triggering.

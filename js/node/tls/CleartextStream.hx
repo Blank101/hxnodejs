@@ -1,21 +1,43 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node.tls;
 
+import js.node.events.EventEmitter.Event;
 import js.node.net.Socket.NetworkAdress;
 
-@:enum abstract CleartextStreamEvent(String) to String {
+@:enum abstract CleartextStreamEvent<T:haxe.Constraints.Function>(Event<T>) to Event<T> {
 	/**
 		This event is emitted after a new connection has been successfully handshaked.
 
 		The listener will be called no matter if the server's certificate was authorized or not.
-		It is up to the user to test cleartextStream.authorized to see if the server certificate was signed by one of the specified CAs.
-		If cleartextStream.authorized == false then the error can be found in cleartextStream.authorizationError.
-		Also if NPN was used - you can check cleartextStream.npnProtocol for negotiated protocol.
 
-		Listener arguments:
-			cleartextStream : ClearTextStream
-			encryptedStream : EncryptedStream
+		It is up to the user to test `CleartextStream.authorized` to see
+		if the server certificate was signed by one of the specified CAs.
+
+		If `CleartextStream.authorized` is false then the error can be found in `CleartextStream.authorizationError`.
+
+		Also if NPN was used - you can check `CleartextStream.npnProtocol` for negotiated protocol.
 	**/
-	var SecureConnect = "secureConnect";
+	var SecureConnect : CleartextStreamEvent<Void->Void> = "secureConnect";
 }
 
 /**
@@ -50,8 +72,14 @@ extern class CleartextStream extends CryptoStream {
 	var remotePort(default,null):Int;
 
 	/**
+		Negotiated protocol name.
+	**/
+	var npnProtocol(default,null):String;
+
+	/**
 		Returns an object representing the peer's certificate.
 		The returned object has some properties corresponding to the field of the certificate.
+
 		If the peer does not provide a certificate, it returns null or an empty object.
 	**/
 	function getPeerCertificate():Dynamic<Dynamic>; // TODO: do we want a type for this?

@@ -1,3 +1,24 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 /**
@@ -23,12 +44,12 @@ typedef CPU = {
 	/**
 		MHz Speed
 	**/
-	var speed : Int;
+	var speed:Int;
 
 	/**
 		CPUTime data.
 	**/
-	var times : CPUTime;
+	var times:CPUTime;
 }
 
 /**
@@ -52,6 +73,11 @@ typedef NetworkInterfaceAddressInfo = {
 	var internal:Bool;
 }
 
+@:enum abstract Endianness(String) to String {
+	var BigEndian = "BE";
+	var LittleEndian = "LE";
+}
+
 /**
 	Provides a few basic operating-system related utility functions.
 **/
@@ -71,7 +97,7 @@ extern class Os {
 	/**
 		Returns the endianness of the CPU. Possible values are "BE" or "LE".
 	**/
-	static function endianness():String;
+	static function endianness():Endianness;
 
 	/**
 		Returns the hostname of the operating system.

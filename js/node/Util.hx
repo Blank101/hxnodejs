@@ -1,3 +1,24 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 import haxe.DynamicAccess;
@@ -24,8 +45,8 @@ extern class Util {
 		If the first argument is not a format string then `format` returns a string that is the concatenation of
 		all its arguments separated by spaces. Each argument is converted to a string with `inspect`.
 	**/
-	@:overload(function(args:haxe.Rest<Dynamic>):String {})
-	static function format(format:String, args:haxe.Rest<Dynamic>):String;
+	@:overload(function(args:haxe.extern.Rest<Dynamic>):String {})
+	static function format(format:String, args:haxe.extern.Rest<Dynamic>):String;
 
 	/**
 		A synchronous output function.
@@ -36,20 +57,20 @@ extern class Util {
 	/**
 		Same as `debug` except this will output all arguments immediately to stderr.
 	**/
-	static function error(args:haxe.Rest<Dynamic>):Void;
+	static function error(args:haxe.extern.Rest<Dynamic>):Void;
 
 	/**
 		A synchronous output function.
 		Will block the process and output all arguments to stdout with newlines after each argument.
 	**/
-	static function puts(args:haxe.Rest<Dynamic>):Void;
+	static function puts(args:haxe.extern.Rest<Dynamic>):Void;
 
 	/**
 		A synchronous output function.
 		Will block the process, cast each argument to a string then output to stdout.
 		Does not place newlines after each argument.
 	**/
-	static function print(args:haxe.Rest<Dynamic>):Void;
+	static function print(args:haxe.extern.Rest<Dynamic>):Void;
 
 	/**
 		Output with timestamp on stdout.
@@ -119,7 +140,8 @@ extern class Util {
 
 		`callback` is called when `writableStream` is closed or when an error occurs.
 	**/
-	static function pump(readableStream:Readable, writableStream:Writable, ?callback:js.Error->Void):Void;
+	@:deprecated("Use `readableStream.pipe(writableStream)` instead")
+	static function pump(readableStream:IReadable, writableStream:IWritable, ?callback:js.Error->Void):Void;
 
 	/**
 		Inherit the prototype methods from one constructor into another.

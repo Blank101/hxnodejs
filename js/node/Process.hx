@@ -1,14 +1,38 @@
+/*
+ * Copyright (C)2014-2015 Haxe Foundation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 package js.node;
 
 import haxe.DynamicAccess;
+import haxe.extern.EitherType;
+
 import js.node.events.EventEmitter;
 import js.node.stream.Readable;
 import js.node.stream.Writable;
 
+
 /**
 	Enumeration of events emitted by the Process class.
 **/
-@:enum abstract ProcessEvent(String) to String {
+@:enum abstract ProcessEvent<T:haxe.Constraints.Function>(Event<T>) to Event<T> {
 	/**
 		Emitted when the process is about to exit.
 		There is no way to prevent the exiting of the event loop at this point,
@@ -17,36 +41,51 @@ import js.node.stream.Writable;
 		This is a good hook to perform checks on the module's state (like for unit tests).
 		The callback takes one argument, the code the process is exiting with.
 	**/
-	var Exit = "exit";
+	var Exit : ProcessEvent<Int->Void> = "exit";
+
+
+	/**
+		Emitted when node empties it's event loop and has nothing else to schedule.
+
+		Normally, node exits when there is no work scheduled, but a listener for `beforeExit`
+		can make asynchronous calls, and cause node to continue.
+
+		`beforeExit` is not emitted for conditions causing explicit termination, such as `process.exit()`
+		or uncaught exceptions, and should not be used as an alternative to the `exit` event
+		unless the intention is to schedule more work.
+	**/
+	var BeforeExit : ProcessEvent<Int->Void> = "beforeExit";
+
 
 	/**
 		Emitted when an exception bubbles all the way back to the event loop.
 		If a listener is added for this exception, the default action (which is to print a stack trace and exit)
 		will not occur.
 	**/
-	var UncaughtException = "uncaughtException";
+	var UncaughtException : ProcessEvent<js.Error->Void> = "uncaughtException";
 }
 
-extern class Process extends EventEmitter {
+
+extern class Process extends EventEmitter<Process> {
 
 	/**
 		A Writable Stream to stdout.
 
 		`stderr` and `stdout` are unlike other streams in Node in that writes to them are usually blocking.
 	**/
-	var stdout:Writable;
+	var stdout:IWritable;
 
 	/**
 		A writable stream to stderr.
 
 		`stderr` and `stdout` are unlike other streams in Node in that writes to them are usually blocking.
 	**/
-	var stderr:Writable;
+	var stderr:IWritable;
 
 	/**
 		A Readable Stream for stdin.
 	**/
-	var stdin:Readable;
+	var stdin:IReadable;
 
 	/**
 		An array containing the command line arguments.
@@ -148,9 +187,7 @@ extern class Process extends EventEmitter {
 		Note: this function is only available on POSIX platforms (i.e. not Windows)
 		The list can contain group IDs, group names or both.
 	**/
-	@:overload(function(groups:Array<Dynamic>):Void {}) // TODO: Array<Either<String,Int>> ?
-	@:overload(function(groups:Array<String>):Void {})
-	function setgroups(groups:Array<Int>):Void;
+	function setgroups(groups:Array<EitherType<String,Int>>):Void;
 
 	/**
 		Reads /etc/group and initializes the group access list, using all groups of which the user is a member.
@@ -158,10 +195,7 @@ extern class Process extends EventEmitter {
 
 		Note: this function is only available on POSIX platforms (i.e. not Windows)
 	**/
-	@:overload(function(user:String, extra_group:Int):Void {}) // TODO: use Either<String,Int>?
-	@:overload(function(user:Int, extra_group:String):Void {})
-	@:overload(function(user:String, extra_group:String):Void {})
-	function initgroups(user:Int, extra_group:Int):Void;
+	function initgroups(user:EitherType<String,Int>, extra_group:EitherType<String,Int>):Void;
 
 	/**
 		A compiled-in property that exposes NODE_VERSION.
@@ -232,20 +266,6 @@ extern class Process extends EventEmitter {
 	**/
 	function nextTick(callback:Void->Void):Void;
 
-
-	/**
-		Callbacks passed to `nextTick` will usually be called at the end of the current flow of execution,
-		and are thus approximately as fast as calling a function synchronously.
-
-		Left unchecked, this would starve the event loop, preventing any I/O from occurring.
-		In order to avoid the situation where Node is blocked by an infinite loop of recursive series
-		of nextTick calls, it defers to allow some I/O to be done every so often.
-
-		The `maxTickDepth` value (default is 1000) is the maximum depth of `nextTick`-calling `nextTick`-callbacks
-		that will be evaluated before allowing other forms of I/O to occur.
-	**/
-	var maxTickDepth:Int;
-
 	/**
 		Sets or reads the process's file mode creation mask.
 		Child processes inherit the mask from the parent process.
@@ -268,6 +288,15 @@ extern class Process extends EventEmitter {
 	**/
 	@:overload(function(prev:Array<Float>):Array<Float> {})
 	function hrtime():Array<Float>;
+
+	/**
+		Alternate way to retrieve require.main. The difference is that if the main module changes at runtime,
+		require.main might still refer to the original main module in modules that were required
+		before the change occurred. Generally it's safe to assume that the two refer to the same module.
+
+		As with require.main, it will be undefined if there was no entry script.
+	**/
+	var mainModule(default,null):Module;
 
 	/**
 		Send a message to the parent process.
